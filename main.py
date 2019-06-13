@@ -2,8 +2,11 @@ import sys
 from PyQt5.QtWidgets import QDialog, QApplication, QMainWindow, QMessageBox
 import matplotlib.pyplot as plt
 from PyQt5 import QtCore
+from Qt import QtGui
+
 from main_window import Ui_MainWindow
 import numpy as np
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from threading import Thread
 import time
 import re
@@ -23,6 +26,8 @@ R_TE = []
 R_TM = []
 T_TE = []
 T_TM = []
+wave_Mode = 0  #1 for TE, 2 for TM
+curve_Mode = 0  #1 for reflection， 2 for transmission
 
 
 class AppWindow(QMainWindow):
@@ -35,14 +40,19 @@ class AppWindow(QMainWindow):
         self.set_callback()
         self.show()
 
-        #self.figure = plt.figure()
+        self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.ui.figure_layout.addWidget(self.canvas)
+        self.ax = self.figure.add_subplot(111)
 
-        #ProducerThread().start()
+
 
     def set_callback(self):
         self.ui.write_data.clicked.connect(self.read_message)
-
-
+        self.ui.te_wave.clicked.connect(self.set_module_TE)
+        self.ui.tm_wave.clicked.connect(self.set_module_TM)
+        self.ui.reflection_coefficient.clicked.connect(self.set_curve_Mode_reflective)
+        self.ui.transmission_coefficient.clicked.connect(self.set_curve_Mode_transmission)
 
 
     def read_message(self):
@@ -80,7 +90,62 @@ class AppWindow(QMainWindow):
         print(d_each_level)
 
     def set_module_TE(self):
-        figure_plot
+        global wave_Mode
+        wave_Mode = 1
+        self.ui.config1.setText('TE波')
+        self.ui.config1.repaint()
+        self.figure_plot()
+
+    def set_module_TM(self):
+        global wave_Mode
+        wave_Mode = 2
+        self.ui.config1.setText('TM波')
+        self.ui.config1.repaint()
+        self.figure_plot()
+
+    def set_curve_Mode_reflective(self):
+        global curve_Mode
+        curve_Mode = 1
+        self.ui.config2.setText('反射系数曲线')
+        self.ui.config2.repaint()
+        self.figure_plot()
+
+
+    def set_curve_Mode_transmission(self):
+        global curve_Mode
+        curve_Mode = 2
+        self.ui.config2.setText('透射系数曲线')
+        self.ui.config2.repaint()
+        self.figure_plot()
+
+    def figure_plot(self):
+        global wave_Mode, curve_Mode
+        figure_final = []
+        if wave_Mode == 0 or curve_Mode == 0:
+            return
+        if wave_Mode == 1:
+            if curve_Mode == 1:
+                x = [1, 2, 3, 4, 5]
+                figure_final = R_TE
+                figure_final = x
+            elif curve_Mode == 2:
+                t = [5, 4, 3, 2, 1]
+                figure_final = T_TE
+                figure_final = t
+
+        elif wave_Mode == 2:
+            if curve_Mode == 1:
+                w = [6, 7, 8, 9, 10]
+                figure_final = R_TM
+                figure_final = w
+            elif curve_Mode == 2:
+                r = [10, 9, 8, 7, 6]
+                # figure_final = T_TM
+                figure_final = r
+        print('current config', curve_Mode, wave_Mode)
+        self.ax.clear()
+        self.ax.plot(figure_final)
+        self.canvas.draw_idle()
 
     def show_message(self, text):
         msg = QMessageBox()
@@ -88,8 +153,6 @@ class AppWindow(QMainWindow):
         msg.setStandardButtons(QMessageBox.Ok)
         ret = msg.exec_()
 
-
-#class ProducerThread(Thread):
 
 
 
